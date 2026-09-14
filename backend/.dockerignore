@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+data/
+src/docs_backend.egg-info/
+tests/
+.git/

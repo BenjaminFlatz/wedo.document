@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# Backend local data (SQLite dev DB)
+backend/data/
+
+# Node
+node_modules/
+package-lock.json.bak
+
+# Frontend build output
+frontend/dist/
+
+# Railway IaC tooling — installed only to type-check .railway/railway.ts
+# against the real `railway` package; never needed at deploy time (Railway
+# runs `railway config plan/apply` via its own CLI, not via this local
+# node_modules tree).
+.railway/node_modules/
+
+# Editor/OS cruft
+.DS_Store
+*.swp
