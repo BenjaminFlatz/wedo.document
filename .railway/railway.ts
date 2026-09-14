@@ -62,7 +62,7 @@ export default defineRailway((ctx, project) => {
     volumeMounts: {
   "/app/data": backendData,
 },
-domains: ["docs-backend"],
+networking: { serviceDomains: { "docs-backend": {} } },
 env: {
   // Points the app at the file living on the mounted volume above.
   // backend/src/infrastructure/db_models.py reads DATABASE_URL (default:
@@ -90,7 +90,7 @@ env: {
       restartPolicyType: "ON_FAILURE",
       restartPolicyMaxRetries: 3,
     },
-    domains: ["docs-frontend"],
+    networking: { serviceDomains: { "docs-frontend": {} } },
     env: {
       // Build-time Vite variable (baked into the bundle via the Dockerfile's
       // ARG/ENV pair). Same circular-dependency situation as CORS_ORIGINS

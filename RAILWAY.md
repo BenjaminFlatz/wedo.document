@@ -5,6 +5,10 @@ GitHub repo, each built from its own Dockerfile. There is no shared
 database between them — the backend persists to a local SQLite file on a
 mounted volume.
 
+**Live deployment:**
+- Frontend: https://docs-frontend-production.up.railway.app
+- Backend: https://docs-backend-production-8459.up.railway.app (`/health`)
+
 Deployment is defined as **Infrastructure as Code (IaC)** in
 [`.railway/railway.ts`](.railway/railway.ts:1), using Railway's official
 `railway/iac` SDK. That file is the single source of truth for both
@@ -76,22 +80,33 @@ two variables. After that first apply:
    → Settings → Networking, or `railway domain` per service).
 2. Set the real values once, out-of-band:
    ```bash
-   railway variables set --service docs-backend \
-     CORS_ORIGINS=https://<docs-frontend-domain>
+   railway variables --service docs-backend \
+     --set 'CORS_ORIGINS=https://<docs-frontend-domain>' --skip-deploys
 
-   railway variables set --service docs-frontend \
-     VITE_API_BASE_URL=https://<docs-backend-domain>
+   railway variables --service docs-frontend \
+     --set 'VITE_API_BASE_URL=https://<docs-backend-domain>' --skip-deploys
    ```
-   (`VITE_API_BASE_URL` is build-time — setting it triggers a rebuild of the
-   frontend image since Railway forwards it as a Docker build arg.)
-3. Redeploy `docs-backend` if it doesn't pick up the new `CORS_ORIGINS`
-   automatically.
+   (`VITE_API_BASE_URL` is build-time — it only takes effect on the next
+   `railway up`/build of the frontend image, since Railway forwards it as a
+   Docker build arg.)
+3. Deploy (or redeploy) both services so they pick up the new variables,
+   e.g. `railway up --service docs-backend --detach` from `backend/` and
+   `railway up --service docs-frontend --detach` from `frontend/`.
 4. Confirm both services are wired correctly: visit the frontend URL, check
    the login page loads and lists the seeded users (proves the frontend can
-   reach the backend and CORS is configured correctly).
+   reach the backend and CORS is configured correctly). This was verified
+   for the live deployment above — see the "Live deployment" note in
+   [`SUBMISSION.md`](SUBMISSION.md:21).
 5. Run `RAILWAY_IAC_ENV=production railway config plan` again — because
    both variables are `preserve()`, it should report no pending changes even
    though the dashboard now holds real values.
+
+> **Note on the `domains` shorthand:** the `service()` config's `domains:
+> [...]` field always compiles to `customDomains` (bring-your-own-domain
+> registration), never Railway's auto-generated `*.up.railway.app`
+> subdomain. To request the generated subdomain, use `networking: {
+> serviceDomains: { "<service-name>": {} } }` instead, as done in
+> `.railway/railway.ts` for both services.
 
 ## 4. Notes
 
@@ -114,3 +129,15 @@ two variables. After that first apply:
   config files have been removed now that `.railway/railway.ts` is the
   single source of truth — Config-as-Code and the IaC file must not coexist
   (see `.roo/rules/05-deploy.md`).
+- **Known benign `railway config plan` drift:** after every successful
+  `apply`, a follow-up `plan` on this project reports 5 pending changes
+  (`source.type` "github"→"empty" on both services, `deploy.restartPolicyType`
+  null→"ON_FAILURE" on both services, and the volume's `config.region`/
+  `config.sizeMB` "iad"/5000→null) that reappear identically even after
+  re-applying. These fields are either server-computed (`source.type` isn't
+  an explicit input in our `service()` calls, which only declare
+  `build.builder: DOCKERFILE`) or reflect Railway defaulting values on
+  creation that the SDK's diff engine doesn't treat as fully settled. This
+  does not indicate a broken or non-idempotent deployment — both services
+  remain provisioned correctly and Online after each apply — so it can be
+  safely ignored rather than chased further.

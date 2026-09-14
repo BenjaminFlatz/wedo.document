@@ -20,36 +20,33 @@ Submission for the Ajaia LLC "AI-Native Full Stack Developer" take-home assignme
 
 ## Live deployment
 
-This build was implemented and verified entirely in a sandboxed development
-environment that has no Railway account credentials and no outbound network
-access from within Docker containers (confirmed while testing the backend
-image — `pip install` could not reach `pypi.org` from inside a container,
-while the host itself has network access). As a result, **no live Railway
-URL was generated as part of this submission** — there was no way to
-authenticate against Railway's API/CLI or push a build from this
-environment.
+The application is deployed and live on Railway:
 
-The application is deployment-ready:
+- **Frontend:** https://docs-frontend-production.up.railway.app
+- **Backend API:** https://docs-backend-production-8459.up.railway.app
+  (health check: `/health`)
 
-- Both `backend/Dockerfile` and `frontend/Dockerfile` build standard,
+Both services were provisioned entirely via the committed
+Infrastructure-as-Code definition —
+[`.railway/railway.ts`](.railway/railway.ts:1), Railway's official
+`railway/iac` SDK — with no manual dashboard configuration:
+
+- `backend/Dockerfile` and `frontend/Dockerfile` build standard,
   single-purpose production images (FastAPI/uvicorn on `python:3.11-slim`;
   a Vite static build served by `nginx:1.27-alpine` with `envsubst`
   templating for Railway's dynamic `$PORT`).
-- [`.railway/railway.ts`](.railway/railway.ts:1) is a committed
-  Infrastructure-as-Code definition (Railway's official `railway/iac` SDK)
-  that provisions both services, a persistent volume for SQLite, health
-  checks, restart policies, and public domains — `railway config apply`
-  stands up the whole environment without any manual dashboard
-  configuration.
-- [`RAILWAY.md`](RAILWAY.md:1) documents the CLI steps (`railway config
-  plan` / `railway config apply`), and the one-time manual step to resolve
-  the two services' circular public-URL dependency (`CORS_ORIGINS` /
-  `VITE_API_BASE_URL`), which can't be known before the first apply.
-
-Given Railway credentials, standing this up end-to-end is expected to take
-a few minutes by running `railway config apply` and following the short
-one-time manual step in `RAILWAY.md`. If a live URL is required before
-review, I can deploy this on request and share the link.
+- `.railway/railway.ts` provisions both services, a persistent volume for
+  SQLite, health checks, restart policies, and public domains via
+  `networking.serviceDomains` (see [`RAILWAY.md`](RAILWAY.md:1) for the
+  full `railway config plan` / `apply` walkthrough, including the one-time
+  manual step needed to resolve the two services' circular public-URL
+  dependency — `CORS_ORIGINS` on the backend and `VITE_API_BASE_URL` on
+  the frontend — since each depends on the other's generated domain that
+  doesn't exist until after the first apply).
+- Verified end-to-end after deploy: the backend's `/health` and
+  `/auth/users` endpoints respond `200 OK`, `/auth/users` returns
+  `access-control-allow-origin` scoped to the frontend's domain (CORS is
+  correctly wired), and the frontend serves its built assets successfully.
 
 ## Local run (fastest way to evaluate this submission)
 
